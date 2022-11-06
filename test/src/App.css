@@ -4,8 +4,19 @@
 }
 
 .node {
-    cursor: move;
-    fill: #ccc;
-    stroke: #000;
+    cursor: grab;
+    fill: #e0e1dd;
+    stroke: rgb(64, 64, 64);
     stroke-width: 1.5px;
+}
+
+text {
+    stroke: white;
+}
+
+.node > text {
+    stroke: black;
+}
+.graph {
+    background-color: #1b263b;
 }
