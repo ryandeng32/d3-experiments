@@ -1,0 +1,11 @@
+.link {
+    stroke: rgb(101, 101, 101);
+    stroke-width: 1.5px;
+}
+
+.node {
+    cursor: move;
+    fill: #ccc;
+    stroke: #000;
+    stroke-width: 1.5px;
+}
