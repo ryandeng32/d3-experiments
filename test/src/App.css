@@ -1,3 +1,11 @@
+/* CSS Reset */
+* {
+    margin: 0;
+    padding: 0;
+    font-size: 100%;
+    line-height: 1;
+}
+
 .link {
     stroke: rgb(101, 101, 101);
     stroke-width: 1.5px;
@@ -19,4 +27,30 @@ text {
 }
 .graph {
     background-color: #1b263b;
+}
+
+.slider {
+    width: 200px;
+}
+
+.container {
+    display: flex;
+}
+
+.control-container {
+    width: 400px;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+    background-color: #34435b;
+    color: white;
+}
+
+.slider-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
 }

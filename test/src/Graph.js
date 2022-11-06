@@ -1,23 +1,21 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import './App.css';
 import * as d3 from 'd3';
 
 const Graph = ({ width, height }) => {
     const scaleRef = useRef(null);
     const d3Container = useRef(null);
+    // slider states
+    const [xForceStrength, setXForceStrength] = useState(0.2);
+    const [yForceStrength, setYForceStrength] = useState(0.2);
+
+    // forces Ref
+    const xForceRef = useRef(d3.forceX().strength(xForceStrength));
+    const yForceRef = useRef(d3.forceY().strength(yForceStrength));
 
     // number of fake nodes & links
-    const TEST_NUM = 10;
-    function randn_bm() {
-        let u = 0,
-            v = 0;
-        while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
-        while (v === 0) v = Math.random();
-        let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-        num = num / 10.0 + 0.5; // Translate to 0 -> 1
-        if (num > 1 || num < 0) return randn_bm(); // resample between 0 and 1
-        return num;
-    }
+    const TEST_NUM = 100;
+
     // fake graph
     const graph = {
         nodes: Array.from({ length: TEST_NUM }, (n, index) => ({
@@ -83,9 +81,8 @@ const Graph = ({ width, height }) => {
             .text((d) => d.text)
             .attr('text-anchor', 'middle');
 
-        const simulation = d3
+        let simulation = d3
             .forceSimulation(graph.nodes)
-            .alphaDecay(0.01)
             .force(
                 'charge',
                 d3.forceManyBody().strength(function (d) {
@@ -94,8 +91,8 @@ const Graph = ({ width, height }) => {
                 })
             )
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('x', d3.forceX().strength(0.2))
-            .force('y', d3.forceY().strength(0.2))
+            .force('x', xForceRef.current)
+            .force('y', yForceRef.current)
             .force(
                 'link',
                 d3
@@ -197,15 +194,62 @@ const Graph = ({ width, height }) => {
     }, []);
 
     return (
-        <>
+        <div className="container">
             <svg
                 className="graph"
                 width={width}
                 height={height}
                 ref={d3Container}
             />
-        </>
+            <div className="control-container">
+                <div className="slider-container">
+                    <label for="xForce">xForce</label>
+                    <input
+                        className="slider"
+                        name="xForce"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.001"
+                        value={xForceStrength}
+                        onChange={(e) => {
+                            xForceRef.current.strength(e.target.value);
+                            setXForceStrength(e.target.value);
+                        }}
+                    />
+                    {parseFloat(xForceStrength).toFixed(2)}
+                </div>
+                <div className="slider-container">
+                    <label for="yForce">yForce</label>
+                    <input
+                        className="slider"
+                        name="yForce"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.001"
+                        value={yForceStrength}
+                        onChange={(e) => {
+                            yForceRef.current.strength(e.target.value);
+                            setYForceStrength(e.target.value);
+                        }}
+                    />
+                    {parseFloat(yForceStrength).toFixed(2)}
+                </div>
+            </div>
+        </div>
     );
 };
 
 export default Graph;
+
+function randn_bm() {
+    let u = 0,
+        v = 0;
+    while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+    while (v === 0) v = Math.random();
+    let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    num = num / 10.0 + 0.5; // Translate to 0 -> 1
+    if (num > 1 || num < 0) return randn_bm(); // resample between 0 and 1
+    return num;
+}
