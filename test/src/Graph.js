@@ -5,6 +5,8 @@ import * as d3 from 'd3';
 const Graph = ({ width, height }) => {
     const scaleRef = useRef(null);
     const d3Container = useRef(null);
+    const simulationRef = useRef(null);
+
     // slider states
     const [xForceStrength, setXForceStrength] = useState(0.2);
     const [yForceStrength, setYForceStrength] = useState(0.2);
@@ -53,10 +55,6 @@ const Graph = ({ width, height }) => {
         .range([30, 100]);
 
     useEffect(() => {
-        if (!d3Container.current) {
-            return;
-        }
-        // SVG container
         const svg = d3.select(d3Container.current);
 
         // links
@@ -123,6 +121,8 @@ const Graph = ({ width, height }) => {
                     .attr('x2', (d) => d.target.x)
                     // @ts-ignore
                     .attr('y2', (d) => d.target.y);
+                simulationRef.current = simulation;
+                // console.log(simulationRef.current.alpha());
             });
 
         const dragstart = function (event, d) {
@@ -214,6 +214,7 @@ const Graph = ({ width, height }) => {
                         value={xForceStrength}
                         onChange={(e) => {
                             xForceRef.current.strength(e.target.value);
+                            simulationRef.current.alphaTarget(0.3).restart();
                             setXForceStrength(e.target.value);
                         }}
                     />
@@ -231,6 +232,7 @@ const Graph = ({ width, height }) => {
                         value={yForceStrength}
                         onChange={(e) => {
                             yForceRef.current.strength(e.target.value);
+                            simulationRef.current.alphaTarget(0.3).restart();
                             setYForceStrength(e.target.value);
                         }}
                     />
