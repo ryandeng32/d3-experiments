@@ -124,7 +124,7 @@ const Graph = ({ width, height }) => {
                     .attr('x2', (d) => d.target.x)
                     // @ts-ignore
                     .attr('y2', (d) => d.target.y);
-                // console.log(simulationRef.current.alpha());
+                simulationRef.current = simulation;
             });
 
         const dragstart = function (event, d) {
