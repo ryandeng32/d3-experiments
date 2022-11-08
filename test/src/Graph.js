@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 const Graph = ({ width, height }) => {
     const scaleRef = useRef(null);
     const d3Container = useRef(null);
-    const simulationRef = useRef(null);
+    const containerRef = useRef(null);
 
     // slider states
     const [xForceStrength, setXForceStrength] = useState(0.2);
@@ -16,7 +16,7 @@ const Graph = ({ width, height }) => {
     const yForceRef = useRef(d3.forceY().strength(yForceStrength));
 
     // number of fake nodes & links
-    const TEST_NUM = 100;
+    const TEST_NUM = 10;
 
     // fake graph
     const graph = {
@@ -49,164 +49,231 @@ const Graph = ({ width, height }) => {
     for (let key in adjList) {
         maxConnection = Math.max(adjList[key].size, maxConnection);
     }
-    let areaSqrtScale = d3
-        .scaleSqrt()
-        .domain([1, maxConnection])
-        .range([30, 100]);
+    // let areaSqrtScale = d3
+    //     .scaleSqrt()
+    //     .domain([1, maxConnection])
+    //     .range([30, 100]);
 
-    useEffect(() => {
-        const svg = d3.select(d3Container.current);
+    const svg = d3
+        .create('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .classed('graph', true);
 
-        // links
-        const link = svg
-            .selectAll('line')
-            .data(graph.links)
-            .enter()
-            .append('line')
-            .classed('link', true);
+    const link = svg
+        .selectAll('line')
+        .data(graph.links)
+        .enter()
+        .append('line')
+        .classed('link', true);
 
-        // Node container: text and circle
-        const node = svg
-            .selectAll('g')
-            .data(graph.nodes)
-            .enter()
-            .append('g')
-            .attr('class', 'node');
-        node.append('circle')
-            .attr('r', (d) => {
-                return areaSqrtScale(adjList[d.text].size);
+    // Node container: text and circle
+    const node = svg
+        .selectAll('g')
+        .data(graph.nodes)
+        .enter()
+        .append('g')
+        .attr('class', 'node');
+    node.append('circle')
+        .attr('r', (d) => {
+            // return areaSqrtScale(adjList[d.text].size);
+            return 30;
+        })
+        .attr('cx', width / 2)
+        .attr('cy', height / 2);
+    node.append('text')
+        .text((d) => d.text)
+        .attr('text-anchor', 'middle');
+
+    svg.append('circle')
+        .attr('cx', width / 2)
+        .attr('cy', height / 2)
+        .attr('fill', 'red')
+        .attr('r', 10);
+
+    const simulation = d3
+        .forceSimulation(graph.nodes)
+        .alphaDecay(0.01)
+        .force(
+            'charge',
+            d3.forceManyBody().strength(function (d) {
+                if (adjList[d.text])
+                    return Math.min(30, adjList[d.text].size) * -1000;
             })
-            .attr('cx', width / 2)
-            .attr('cy', height / 2);
-        node.append('text')
-            .text((d) => d.text)
-            .attr('text-anchor', 'middle');
-
-        let simulation = d3
-            .forceSimulation(graph.nodes)
-            .force(
-                'charge',
-                d3.forceManyBody().strength(function (d) {
-                    if (adjList[d.text])
-                        return Math.min(30, adjList[d.text].size) * -1000;
+        )
+        .force('center', d3.forceCenter(width / 2, height / 2).strength(1))
+        .force('x', d3.forceX().strength(xForceStrength))
+        .force('y', d3.forceY().strength(yForceStrength))
+        .force(
+            'link',
+            d3
+                .forceLink(graph.links)
+                .distance((d) => {
+                    let maxConnectionNum = Math.max(
+                        adjList[d.source.text].size,
+                        adjList[d.target.text].size
+                    );
+                    return maxConnectionNum;
                 })
-            )
-            .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('x', xForceRef.current)
-            .force('y', yForceRef.current)
-            .force(
-                'link',
-                d3
-                    .forceLink(graph.links)
-                    .distance((d) => {
-                        let maxConnectionNum = Math.max(
-                            adjList[d.source.text].size,
-                            adjList[d.target.text].size
-                        );
-                        return maxConnectionNum;
-                    })
-                    .strength(0.09)
-            )
-            .force('collision', d3.forceCollide().radius(30))
-            .on('tick', () => {
-                node.select('circle')
-                    .attr('cx', (d) => d.x)
-                    .attr('cy', (d) => d.y);
-                node.select('text')
-                    .attr('x', (d) => d.x)
-                    .attr('y', (d) => d.y);
-                link
-                    // @ts-ignore
-                    .attr('x1', (d) => d.source.x)
-                    // @ts-ignore
-                    .attr('y1', (d) => d.source.y)
-                    // @ts-ignore
-                    .attr('x2', (d) => d.target.x)
-                    // @ts-ignore
-                    .attr('y2', (d) => d.target.y);
-                simulationRef.current = simulation;
-            });
+                .strength(0.09)
+        )
+        .force('collision', d3.forceCollide().radius(30));
+    simulation.on('tick', () => {
+        node.select('circle')
+            .attr('cx', (d) => d.x)
+            .attr('cy', (d) => d.y);
+        node.select('text')
+            .attr('x', (d) => d.x)
+            .attr('y', (d) => d.y);
+        link
+            // @ts-ignore
+            .attr('x1', (d) => d.source.x)
+            // @ts-ignore
+            .attr('y1', (d) => d.source.y)
+            // @ts-ignore
+            .attr('x2', (d) => d.target.x)
+            // @ts-ignore
+            .attr('y2', (d) => d.target.y);
+    });
 
-        const dragstart = function (event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = event.x;
-            d.fy = event.y;
-            const selectedNode = d3.select(this).datum();
-            svg.selectAll('circle').each(function (d) {
-                let isNeighbour = adjList[selectedNode.text].has(d.text);
-                d3.select(this).style(
-                    'fill',
-                    isNeighbour ? 'yellow' : 'rgb(120, 120, 120)'
-                );
-            });
-            svg.selectAll('line')
-                .filter((d) => {
-                    if (
-                        d.source.text === selectedNode.text &&
-                        adjList[selectedNode.text].has(d.target.text)
-                    ) {
-                        return true;
-                    }
-                    if (
-                        d.target.text === selectedNode.text &&
-                        adjList[selectedNode.text].has(d.source.text)
-                    ) {
-                        return true;
-                    }
-                    return false;
-                })
-                .style('stroke', 'yellow');
-        };
+    const handleZoom = (e) => {
+        scaleRef.current = e.transform.k;
+        svg.selectAll('.link, circle, .node > text')
+            .transition()
+            .ease(d3.easeCircleOut)
+            .duration(400)
+            .attr('transform', e.transform);
+        svg.select('.scaleText').text(`Scale Factor: ${scaleRef.current}`);
+    };
+    let zoom = d3.zoom().on('zoom', handleZoom);
+    svg.append('text').classed('scaleText', true).attr('x', 50).attr('y', 50);
+    svg.call(zoom);
 
-        const dragged = function (event, d) {
-            d.fx += event.dx / scaleRef.current;
-            d.fy += event.dy / scaleRef.current;
-        };
+    const dragstart = function (event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = event.x;
+        d.fy = event.y;
+        const selectedNode = d3.select(this).datum();
+        svg.selectAll('circle').each(function (d) {
+            let isNeighbour = adjList[selectedNode.text].has(d.text);
+            d3.select(this).style(
+                'fill',
+                isNeighbour ? 'yellow' : 'rgb(120, 120, 120)'
+            );
+        });
+        svg.selectAll('line')
+            .filter((d) => {
+                if (
+                    d.source.text === selectedNode.text &&
+                    adjList[selectedNode.text].has(d.target.text)
+                ) {
+                    return true;
+                }
+                if (
+                    d.target.text === selectedNode.text &&
+                    adjList[selectedNode.text].has(d.source.text)
+                ) {
+                    return true;
+                }
+                return false;
+            })
+            .style('stroke', 'yellow');
+    };
 
-        const dragended = (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-            svg.selectAll('circle').style('fill', null);
-            svg.selectAll('line').style('stroke', 'rgb(101, 101, 101)');
-        };
+    const dragged = function (event, d) {
+        d.fx += event.dx / scaleRef.current;
+        d.fy += event.dy / scaleRef.current;
+    };
 
-        const drag = d3
-            .drag()
-            .on('start', dragstart)
-            .on('drag', dragged)
-            .on('end', dragended);
+    const dragended = (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+        svg.selectAll('circle').style('fill', null);
+        svg.selectAll('line').style('stroke', 'rgb(101, 101, 101)');
+    };
 
-        node.call(drag);
+    const drag = d3
+        .drag()
+        .on('start', dragstart)
+        .on('drag', dragged)
+        .on('end', dragended);
 
-        const handleZoom = (e) => {
-            scaleRef.current = e.transform.k;
-            svg.selectAll('.link, circle, .node > text')
-                .transition()
-                .ease(d3.easeCircleOut)
-                .duration(400)
-                .attr('transform', e.transform);
-            svg.select('.scaleText').text(`Scale Factor: ${scaleRef.current}`);
-        };
-        let zoom = d3.zoom().on('zoom', handleZoom);
-        svg.append('text')
-            .classed('scaleText', true)
-            .attr('x', 50)
-            .attr('y', 50);
-        svg.call(zoom);
+    node.call(drag);
+    useEffect(() => {
+        const div = d3.select(containerRef.current);
+        console.log(svg.node());
+        div.insert(() => svg.node(), ':first-child');
     }, []);
 
+    const simulationRef = useRef(simulation);
+    useEffect(() => {
+        simulationRef.current
+            .force('x', d3.forceX().strength(xForceStrength))
+            .force('y', d3.forceY().strength(yForceStrength));
+
+        simulationRef.current.alpha(1).restart();
+    }, [xForceStrength, yForceStrength]);
+
+    //     const dragstart = function (event, d) {
+    //         if (!event.active) simulation.alphaTarget(0.3).restart();
+    //         d.fx = event.x;
+    //         d.fy = event.y;
+    //         const selectedNode = d3.select(this).datum();
+    //         svg.selectAll('circle').each(function (d) {
+    //             let isNeighbour = adjList[selectedNode.text].has(d.text);
+    //             d3.select(this).style(
+    //                 'fill',
+    //                 isNeighbour ? 'yellow' : 'rgb(120, 120, 120)'
+    //             );
+    //         });
+    //         svg.selectAll('line')
+    //             .filter((d) => {
+    //                 if (
+    //                     d.source.text === selectedNode.text &&
+    //                     adjList[selectedNode.text].has(d.target.text)
+    //                 ) {
+    //                     return true;
+    //                 }
+    //                 if (
+    //                     d.target.text === selectedNode.text &&
+    //                     adjList[selectedNode.text].has(d.source.text)
+    //                 ) {
+    //                     return true;
+    //                 }
+    //                 return false;
+    //             })
+    //             .style('stroke', 'yellow');
+    //     };
+
+    //     const dragged = function (event, d) {
+    //         d.fx += event.dx / scaleRef.current;
+    //         d.fy += event.dy / scaleRef.current;
+    //     };
+
+    //     const dragended = (event, d) => {
+    //         if (!event.active) simulation.alphaTarget(0);
+    //         d.fx = null;
+    //         d.fy = null;
+    //         svg.selectAll('circle').style('fill', null);
+    //         svg.selectAll('line').style('stroke', 'rgb(101, 101, 101)');
+    //     };
+
+    //     const drag = d3
+    //         .drag()
+    //         .on('start', dragstart)
+    //         .on('drag', dragged)
+    //         .on('end', dragended);
+
+    //     node.call(drag);
+
+    // }, []);
+
     return (
-        <div className="container">
-            <svg
-                className="graph"
-                width={width}
-                height={height}
-                ref={d3Container}
-            />
+        <div className="container" ref={containerRef}>
             <div className="control-container">
                 <div className="slider-container">
-                    <label for="xForce">xForce</label>
+                    <label>xForce</label>
                     <input
                         className="slider"
                         name="xForce"
@@ -216,15 +283,13 @@ const Graph = ({ width, height }) => {
                         step="0.001"
                         value={xForceStrength}
                         onChange={(e) => {
-                            xForceRef.current.strength(e.target.value);
-                            simulationRef.current.alphaTarget(0.3).restart();
                             setXForceStrength(e.target.value);
                         }}
                     />
                     {parseFloat(xForceStrength).toFixed(2)}
                 </div>
                 <div className="slider-container">
-                    <label for="yForce">yForce</label>
+                    <label>yForce</label>
                     <input
                         className="slider"
                         name="yForce"
@@ -234,8 +299,6 @@ const Graph = ({ width, height }) => {
                         step="0.001"
                         value={yForceStrength}
                         onChange={(e) => {
-                            yForceRef.current.strength(e.target.value);
-                            simulationRef.current.alphaTarget(0.3).restart();
                             setYForceStrength(e.target.value);
                         }}
                     />
