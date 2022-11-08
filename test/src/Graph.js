@@ -72,9 +72,12 @@ const Graph = ({ width, height }) => {
             .enter()
             .append('g')
             .attr('class', 'node');
-        node.append('circle').attr('r', (d) => {
-            return areaSqrtScale(adjList[d.text].size);
-        });
+        node.append('circle')
+            .attr('r', (d) => {
+                return areaSqrtScale(adjList[d.text].size);
+            })
+            .attr('cx', width / 2)
+            .attr('cy', height / 2);
         node.append('text')
             .text((d) => d.text)
             .attr('text-anchor', 'middle');
@@ -121,7 +124,6 @@ const Graph = ({ width, height }) => {
                     .attr('x2', (d) => d.target.x)
                     // @ts-ignore
                     .attr('y2', (d) => d.target.y);
-                simulationRef.current = simulation;
                 // console.log(simulationRef.current.alpha());
             });
 
@@ -179,10 +181,11 @@ const Graph = ({ width, height }) => {
 
         const handleZoom = (e) => {
             scaleRef.current = e.transform.k;
-            svg.selectAll('.link, circle, .node > text').attr(
-                'transform',
-                e.transform
-            );
+            svg.selectAll('.link, circle, .node > text')
+                .transition()
+                .ease(d3.easeCircleOut)
+                .duration(400)
+                .attr('transform', e.transform);
             svg.select('.scaleText').text(`Scale Factor: ${scaleRef.current}`);
         };
         let zoom = d3.zoom().on('zoom', handleZoom);
